@@ -1,6 +1,7 @@
 {
 	"require": {
-		"phpgt/webengine": "^5.0"
+        "php": ">=8.4",
+		"phpgt/webengine": "dev-master"
     },
 
 	"autoload": {

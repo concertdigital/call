@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "51941910f2e37f4397a8472d0105fbd2",
+    "content-hash": "2db4e72dffe40ff2fa39309d48c80359",
     "packages": [
         {
             "name": "composer/semver",
@@ -2143,16 +2143,16 @@
         },
         {
             "name": "phpgt/webengine",
-            "version": "v5.0.1",
+            "version": "dev-master",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpgt/WebEngine.git",
-                "reference": "14a0e32045e51f2969388db5d50e7bb2b9e052bd"
+                "reference": "d8ed58692331800e56f8bb394524dd8b468b2ab4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpgt/WebEngine/zipball/14a0e32045e51f2969388db5d50e7bb2b9e052bd",
-                "reference": "14a0e32045e51f2969388db5d50e7bb2b9e052bd",
+                "url": "https://api.github.com/repos/phpgt/WebEngine/zipball/d8ed58692331800e56f8bb394524dd8b468b2ab4",
+                "reference": "d8ed58692331800e56f8bb394524dd8b468b2ab4",
                 "shasum": ""
             },
             "require": {
@@ -2195,6 +2195,7 @@
                 "phpunit/phpunit": "^12.4",
                 "squizlabs/php_codesniffer": "^3.7 || ^4.0"
             },
+            "default-branch": true,
             "type": "library",
             "autoload": {
                 "files": [
@@ -2223,7 +2224,7 @@
             ],
             "support": {
                 "issues": "https://github.com/phpgt/WebEngine/issues",
-                "source": "https://github.com/phpgt/WebEngine/tree/v5.0.1"
+                "source": "https://github.com/phpgt/WebEngine/tree/master"
             },
             "funding": [
                 {
@@ -2231,7 +2232,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-06-22T09:58:46+00:00"
+            "time": "2026-07-14T07:54:52+00:00"
         },
         {
             "name": "psr/container",
@@ -2558,7 +2559,9 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "phpgt/webengine": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {},
