@@ -1,0 +1,16 @@
+{
+	"require": {
+		"phpgt/webengine": "dev-master"
+	},
+
+	"autoload": {
+		"psr-4": {
+			"App\\": "./class"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"App\\Test\\": "./test/phpunit"
+		}
+	}
+}
