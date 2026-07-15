@@ -8,9 +8,7 @@ let offerReceived = false;
 let answer = null;
 let answerReceived = false;
 
-peerConnection = new RTCPeerConnection({
-    iceServers: [{urls: "stun:stun.l.google.com:19302"}]
-});
+let polling = false;
 
 async function start() {
     try {
@@ -20,6 +18,10 @@ async function start() {
         });
 
         document.getElementById('localVideo').srcObject = localStream;
+
+        peerConnection = new RTCPeerConnection({
+            iceServers: [{urls: "stun:stun.l.google.com:19302"}]
+        });
 
         localStream.getTracks().forEach(track => {
             peerConnection.addTrack(track, localStream);
@@ -45,6 +47,12 @@ async function start() {
 }
 
 async function getRoom() {
+    if (polling) {
+        return;
+    }
+
+    polling = true;
+
     try {
         const response = await fetch('/getroom/?code=' + roomCode, {
             method: 'POST',
@@ -131,6 +139,8 @@ async function getRoom() {
         return room;
     } catch (error) {
         console.error('Failed to load API data:', error);
+    } finally {
+        polling = false;
     }
 }
 

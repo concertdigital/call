@@ -8,6 +8,8 @@ let offerReceived = false;
 let answer = null;
 let answerReceived = false;
 
+let polling = false;
+
 async function start() {
     try {
         localStream = await navigator.mediaDevices.getUserMedia({
@@ -45,6 +47,12 @@ async function start() {
 }
 
 async function getRoom() {
+    if (polling) {
+        return;
+    }
+
+    polling = true;
+
     try {
         const response = await fetch('/getroom/?code=' + roomCode, {
             method: 'POST',
@@ -131,6 +139,8 @@ async function getRoom() {
         return room;
     } catch (error) {
         console.error('Failed to load API data:', error);
+    } finally {
+        polling = false;
     }
 }
 
