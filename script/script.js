@@ -8,6 +8,10 @@ let offerReceived = false;
 let answer = null;
 let answerReceived = false;
 
+peerConnection = new RTCPeerConnection({
+    iceServers: [{urls: "stun:stun.l.google.com:19302"}]
+});
+
 async function start() {
     try {
         localStream = await navigator.mediaDevices.getUserMedia({
@@ -16,10 +20,6 @@ async function start() {
         });
 
         document.getElementById('localVideo').srcObject = localStream;
-
-        peerConnection = new RTCPeerConnection({
-            iceServers: [{urls: "stun:stun.l.google.com:19302"}]
-        });
 
         localStream.getTracks().forEach(track => {
             peerConnection.addTrack(track, localStream);
