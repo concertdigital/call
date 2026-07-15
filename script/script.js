@@ -8,10 +8,6 @@ let offerReceived = false;
 let answer = null;
 let answerReceived = false;
 
-peerConnection = new RTCPeerConnection({
-    iceServers: [{urls: "stun:stun.l.google.com:19302"}]
-});
-
 async function start() {
     try {
         localStream = await navigator.mediaDevices.getUserMedia({
@@ -20,6 +16,10 @@ async function start() {
         });
 
         document.getElementById('localVideo').srcObject = localStream;
+
+        peerConnection = new RTCPeerConnection({
+            iceServers: [{urls: "stun:stun.l.google.com:19302"}]
+        });
 
         localStream.getTracks().forEach(track => {
             peerConnection.addTrack(track, localStream);
@@ -96,14 +96,32 @@ async function getRoom() {
 
                     if (offer) {
                         offerReceived = true;
-
                         console.log("offer found! I should send an answer");
 
                         await peerConnection.setRemoteDescription(offer);
 
                         answer = await peerConnection.createAnswer();
 
+                        const iceComplete = new Promise(resolve => {
+                            const checkIce = () => {
+                                if (peerConnection.iceGatheringState === "complete") {
+                                    resolve();
+                                }
+                            };
+
+                            peerConnection.addEventListener(
+                                    "icegatheringstatechange",
+                                    checkIce
+                            );
+
+                            checkIce();
+                        });
+
                         await peerConnection.setLocalDescription(answer);
+
+                        await iceComplete;
+
+                        answer = peerConnection.localDescription;
                     }
                 }
             }
@@ -120,14 +138,14 @@ async function createOffer() {
     if (!peerConnection) return alert("Start camera first.");
 
     const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
 
-    // Wait for ICE gathering to complete
-    await new Promise(resolve => {
+    const iceComplete = new Promise(resolve => {
         peerConnection.onicecandidate = event => {
             if (!event.candidate) resolve();
         };
-    });
+    })
+    await peerConnection.setLocalDescription(offer);
+    await iceComplete;
 
     return peerConnection.localDescription;
 }
