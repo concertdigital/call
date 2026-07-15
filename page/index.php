@@ -5,7 +5,7 @@ use Gt\Http\Response;
 function go(
     Response $response
 ) {
-    $response->redirect(generateRoomCode());
+    $response->redirect(generateRoomCode() . "/");
 }
 
 function generateRoomCode() {

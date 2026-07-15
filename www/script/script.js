@@ -8,14 +8,6 @@ let offerReceived = false;
 let answer = null;
 let answerReceived = false;
 
-const peer = new RTCPeerConnection({
-    iceServers: [
-        {
-            urls: "stun:stun.l.google.com:19302"
-        }
-    ]
-});
-
 async function start() {
     try {
         localStream = await navigator.mediaDevices.getUserMedia({
@@ -81,7 +73,7 @@ async function getRoom() {
                     const otherUserId = Object.keys(room.others)[0];
 
                     if (!answerReceived && room.others[otherUserId].answer) {
-                        console.log("answer found, I should initial connection now")
+                        console.log("answer found, I should initialise connection now")
                         answer = room.others[otherUserId].answer;
                         answerReceived = true;
 
