@@ -8,7 +8,6 @@ function go(
 ) {
     $roomCode = $path->get();
 
-    $document->querySelector("title")->innerHTML = $roomCode . " - Concert Digital Call";
-
+    $document->querySelector("title")->innerHTML = $roomCode . " - Call by Concert";
 }
 
