@@ -23,6 +23,22 @@ async function start() {
             iceServers: [{urls: "stun:stun.l.google.com:19302"}]
         });
 
+        peerConnection.oniceconnectionstatechange = () => {
+            console.log("ICE connection:", peerConnection.iceConnectionState);
+        };
+
+        peerConnection.onconnectionstatechange = () => {
+            console.log("Connection:", peerConnection.connectionState);
+        };
+
+        peerConnection.onicegatheringstatechange = () => {
+            console.log("Gathering:", peerConnection.iceGatheringState);
+        };
+
+        peerConnection.onsignalingstatechange = () => {
+            console.log("Signalling:", peerConnection.signalingState);
+        };
+
         localStream.getTracks().forEach(track => {
             peerConnection.addTrack(track, localStream);
         });
@@ -33,12 +49,14 @@ async function start() {
 
         peerConnection.onicecandidate = event => {
             if (event.candidate) {
-                console.log("ICE candidate:", event.candidate);
+                console.log(
+                        "ICE",
+                        event.candidate.type,
+                        event.candidate.candidate
+                );
+            } else {
+                console.log("ICE gathering complete");
             }
-        };
-
-        peerConnection.oniceconnectionstatechange = () => {
-            console.log("ICE state:", peerConnection.iceConnectionState);
         };
 
     } catch (error) {
@@ -85,7 +103,14 @@ async function getRoom() {
                         answer = room.others[otherUserId].answer;
                         answerReceived = true;
 
-                        await peerConnection.setRemoteDescription(answer);
+                        try {
+                            await peerConnection.setRemoteDescription(answer);
+                            console.log("Remote answer description OK");
+                        } catch (e) {
+                            console.error("setRemoteDescription answer failed", e);
+                        }
+                        console.log("Remote answer set");
+                        console.log(answer.sdp);
                     } else {
                         console.log("I should wait for the answer")
                     }
@@ -106,7 +131,12 @@ async function getRoom() {
                         offerReceived = true;
                         console.log("offer found! I should send an answer");
 
-                        await peerConnection.setRemoteDescription(offer);
+                        try {
+                            await peerConnection.setRemoteDescription(offer);
+                            console.log("Remote offer description OK");
+                        } catch (e) {
+                            console.error("setRemoteDescription offer failed", e);
+                        }
 
                         answer = await peerConnection.createAnswer();
 
@@ -128,6 +158,7 @@ async function getRoom() {
                         await peerConnection.setLocalDescription(answer);
 
                         await iceComplete;
+                        console.log(peerConnection.localDescription.sdp);
 
                         answer = peerConnection.localDescription;
                     }
@@ -156,6 +187,7 @@ async function createOffer() {
     })
     await peerConnection.setLocalDescription(offer);
     await iceComplete;
+    console.log(peerConnection.localDescription.sdp);
 
     return peerConnection.localDescription;
 }
