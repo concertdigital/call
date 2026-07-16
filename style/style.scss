@@ -8,6 +8,21 @@ html, body {
 	font-family: sans-serif;
 }
 
+.logo {
+	position: absolute;
+	width: 145px;
+	height: 80px;
+
+	background-image: url('/asset/logo.svg');
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+
+	z-index: 50;
+	pointer-events: none;
+	opacity: 0.8;
+}
+
 /* Remote container */
 #remoteVideosContainer {
 	position: absolute;
@@ -20,6 +35,7 @@ html, body {
 
 /* Default video styling */
 #remoteVideosContainer video {
+	position: relative;
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
