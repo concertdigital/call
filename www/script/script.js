@@ -218,7 +218,7 @@ window.copyRoomLink = () => {
 };
 
 window.endCall = async () => {
-    window.close();
+    window.location.href = 'https://concertdigital.co.uk';
 };
 
 async function toggleScreenShare() {
