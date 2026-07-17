@@ -6,11 +6,11 @@ let sharingScreen = false;
 let peerConnection;
 
 let offer = null;
-let offerReceived = false;
 let answer = null;
-let answerReceived = false;
 
 let polling = false;
+
+let peers = {};
 
 async function start() {
     try {
@@ -20,50 +20,76 @@ async function start() {
         });
 
         document.getElementById('localVideo').srcObject = localStream;
-
-        peerConnection = new RTCPeerConnection({
-            iceServers: [{urls: "stun:stun.l.google.com:19302"}]
-        });
-
-        peerConnection.oniceconnectionstatechange = () => {
-            console.log("ICE connection:", peerConnection.iceConnectionState);
-        };
-
-        peerConnection.onconnectionstatechange = () => {
-            console.log("Connection:", peerConnection.connectionState);
-        };
-
-        peerConnection.onicegatheringstatechange = () => {
-            console.log("Gathering:", peerConnection.iceGatheringState);
-        };
-
-        peerConnection.onsignalingstatechange = () => {
-            console.log("Signalling:", peerConnection.signalingState);
-        };
-
-        localStream.getTracks().forEach(track => {
-            peerConnection.addTrack(track, localStream);
-        });
-
-        peerConnection.ontrack = event => {
-            document.getElementById('remoteVideo').srcObject = event.streams[0];
-        };
-
-        peerConnection.onicecandidate = event => {
-            if (event.candidate) {
-                console.log(
-                        "ICE",
-                        event.candidate.type,
-                        event.candidate.candidate
-                );
-            } else {
-                console.log("ICE gathering complete");
-            }
-        };
-
     } catch (error) {
         console.error('Camera/mic error:', error);
     }
+}
+
+function createRemoteVideo(userId) {
+
+    const template = document.getElementById("remoteVideo");
+
+    const video = template.cloneNode(true);
+
+    video.id = "remote-" + userId;
+    video.style.display = "";
+    video.autoplay = true;
+    video.playsInline = true;
+
+    document.getElementById("remoteVideosContainer").appendChild(video);
+
+    return video;
+}
+
+function createPeer(userId) {
+    const peerConnection = new RTCPeerConnection({
+        iceServers: [
+            {
+                urls: "stun:stun.l.google.com:19302"
+            }
+        ]
+    });
+
+    localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+    });
+
+    const video = createRemoteVideo(userId);
+
+    peerConnection.ontrack = event => {
+        video.srcObject = event.streams[0];
+    };
+
+    peers[userId] = {
+        peerConnection,
+        offer: null,
+        offerReceived: false,
+        answer: null,
+        answerReceived: false
+    };
+
+    return peers[userId];
+}
+
+async function sendNegotiation(toUserId, type, data) {
+
+    const response = await fetch('/negotiation/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+            roomCode: roomCode,
+            toUserId: toUserId,
+            type: type,
+            data: JSON.stringify(data)
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+    }
+
 }
 
 async function getRoom() {
@@ -75,14 +101,10 @@ async function getRoom() {
 
     try {
         const response = await fetch('/getroom/?code=' + roomCode, {
-            method: 'POST',
+            method: 'GET',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: new URLSearchParams({
-                offer: JSON.stringify(offer),
-                answer: JSON.stringify(answer)
-            })
         });
 
         if (!response.ok) {
@@ -91,82 +113,71 @@ async function getRoom() {
 
         const data = await response.json();
         const room = data.room;
+        const myId = data.room.me.id;
 
         if (room.participants > 1) {
-            if (room.me.role === "offerer") {
-                if (!offer) {
-                    console.log("I should create the offer");
-                    offer = await createOffer();
-                } else {
-                    const otherUserId = Object.keys(room.others)[0];
+            for (const userId of Object.keys(room.others)) {
 
-                    if (!answerReceived && room.others[otherUserId].answer) {
-                        console.log("answer found, I should initialise connection now")
-                        answer = room.others[otherUserId].answer;
-                        answerReceived = true;
+                if (!peers[userId]) {
+                    console.log("New peer detected", userId);
 
-                        try {
-                            await peerConnection.setRemoteDescription(answer);
-                            console.log("Remote answer description OK");
-                        } catch (e) {
-                            console.error("setRemoteDescription answer failed", e);
-                        }
-                        console.log("Remote answer set");
-                        console.log(answer.sdp);
-                    } else {
-                        console.log("I should wait for the answer")
-                    }
-                }
-            } else {
-                if (!answer) {
-                    console.log("I should check for an offer");
-
-                    const otherUserId = Object.keys(room.others)[0];
-                    offer = room.others[otherUserId].offer;
+                    createPeer(userId);
                 }
 
-                if (!offerReceived) {
-                    const otherUserId = Object.keys(room.others)[0];
-                    offer = room.others[otherUserId].offer;
-
-                    if (offer) {
-                        offerReceived = true;
-                        console.log("offer found! I should send an answer");
-
-                        try {
-                            await peerConnection.setRemoteDescription(offer);
-                            console.log("Remote offer description OK");
-                        } catch (e) {
-                            console.error("setRemoteDescription offer failed", e);
-                        }
-
-                        answer = await peerConnection.createAnswer();
-
-                        const iceComplete = new Promise(resolve => {
-                            const checkIce = () => {
-                                if (peerConnection.iceGatheringState === "complete") {
-                                    resolve();
-                                }
-                            };
-
-                            peerConnection.addEventListener(
-                                    "icegatheringstatechange",
-                                    checkIce
-                            );
-
-                            checkIce();
-                        });
-
-                        await peerConnection.setLocalDescription(answer);
-
-                        await iceComplete;
-                        console.log(peerConnection.localDescription.sdp);
-
-                        answer = peerConnection.localDescription;
-                    }
-                }
+                await handlePeer(userId, room);
             }
 
+            async function handlePeer(userId, room) {
+
+                const peer = peers[userId];
+
+                if (room.me.peers[userId].role === "offerer") {
+                    if (!peer.offer) {
+
+                        console.log("Creating offer for", userId);
+                        peer.offer = await createOffer(peer);
+                        await sendNegotiation(userId, 'offer', peer.offer);
+
+                    } else if (!peer.answerReceived && room.others[userId].answer) {
+
+                        console.log("Answer recieved from", userId);
+                        peer.answer = JSON.parse(room.others[userId].answer);
+
+                        await peer.peerConnection.setRemoteDescription(
+                            peer.answer
+                        );
+
+                        peer.answerReceived = true;
+                    }
+                } else {
+                    const offer = room.others[userId].offer
+                        ? JSON.parse(room.others[userId].offer)
+                        : null;
+
+                    if (offer && !peer.offerReceived) {
+
+                        console.log("Offer recieved from", userId, offer);
+                        console.log(typeof offer);
+                        await peer.peerConnection.setRemoteDescription(
+                            offer
+                        );
+
+                        const answer =
+                            await peer.peerConnection.createAnswer();
+
+                        console.log("Setting answer for", userId);
+                        await peer.peerConnection.setLocalDescription(answer);
+
+                        peer.answer =
+                            peer.peerConnection.localDescription;
+
+                        await sendNegotiation(userId, 'answer', peer.answer);
+
+                        peer.offerReceived = true;
+                    }
+
+                }
+            }
         }
 
         return room;
@@ -177,21 +188,30 @@ async function getRoom() {
     }
 }
 
-async function createOffer() {
-    if (!peerConnection) return alert("Start camera first.");
+async function createOffer(peer) {
 
-    const offer = await peerConnection.createOffer();
+    const pc = peer.peerConnection;
+    const offer = await pc.createOffer();
 
     const iceComplete = new Promise(resolve => {
-        peerConnection.onicecandidate = event => {
-            if (!event.candidate) resolve();
+        const checkIce = () => {
+            if (pc.iceGatheringState === "complete") {
+                resolve();
+            }
         };
-    })
-    await peerConnection.setLocalDescription(offer);
-    await iceComplete;
-    console.log(peerConnection.localDescription.sdp);
 
-    return peerConnection.localDescription;
+        pc.addEventListener(
+            "icegatheringstatechange",
+            checkIce
+        );
+
+        checkIce();
+    });
+
+    await pc.setLocalDescription(offer);
+    await iceComplete;
+
+    return pc.localDescription;
 }
 
 window.toggleMic = () => {
@@ -229,12 +249,21 @@ async function toggleScreenShare() {
             });
 
             const screenTrack = screenStream.getVideoTracks()[0];
-            const sender = peerConnection
-                    .getSenders()
-                    .find(sender => sender.track && sender.track.kind === "video");
 
-            if (sender) {
-                await sender.replaceTrack(screenTrack);
+            for (const userId in peers) {
+
+                const pc = peers[userId].peerConnection;
+
+                const sender = pc
+                    .getSenders()
+                    .find(sender =>
+                        sender.track &&
+                        sender.track.kind === "video"
+                    );
+
+                if (sender) {
+                    await sender.replaceTrack(screenTrack);
+                }
             }
 
             // Show screen locally
@@ -261,12 +290,20 @@ async function stopScreenShare() {
     if (!screenStream) return;
 
     const cameraTrack = localStream.getVideoTracks()[0];
-    const sender = peerConnection
-            .getSenders()
-            .find(sender => sender.track && sender.track.kind === "video");
 
-    if (sender) {
-        await sender.replaceTrack(cameraTrack);
+    for (const userId in peers) {
+        const pc = peers[userId].peerConnection;
+
+        const sender = pc
+            .getSenders()
+            .find(sender =>
+                sender.track &&
+                sender.track.kind === "video"
+            );
+
+        if (sender) {
+            await sender.replaceTrack(cameraTrack);
+        }
     }
 
     screenStream.getTracks().forEach(track => track.stop());

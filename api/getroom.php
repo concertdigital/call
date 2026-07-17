@@ -11,7 +11,7 @@ function go(
     Session $session,
 )
 {
-    $userId = $session->get("userId");
+    $userId = (string)$session->get("userId");
     if (!$userId) {
         $userId = new Ulid("USER");
         $session->set("userId", $userId);
@@ -31,7 +31,6 @@ function go(
     $userFile = file_exists($userFileName) ? json_decode(file_get_contents($userFileName), true) : [];
     $userFile["id"] = (string)$userId;
 
-
     //find other user files
     $users = [];
     foreach (glob($roomDir . "/*.json") as $file) {
@@ -48,32 +47,44 @@ function go(
         );
     }
 
-    //right now we're only going to support one other user, but soon we will expand this
+    $peers = [];
     foreach ($users as $otherUserId => $otherUser) {
+        $peer = [];
+
         if ($otherUserId > $userId) {
             //we are offerer
-            $userFile["role"] = "offerer";
+            $peer["role"] = "offerer";
 
-            if ($input->getString("offer")) {
-                $userFile["offer"] = json_decode($input->getString("offer"));
+            //check for answer
+            if (isset($otherUser["peers"][$userId]["answer"])) {
+                $peer["answer"] = $otherUser["peers"][$userId]["answer"];
             }
-
+            if (isset($otherUser["peers"][$userId]["offer"])) {
+                $peer["offer"] = $otherUser["peers"][$userId]["offer"];
+            }
         } else {
             //we are receiver
-            $userFile["role"] = "receiver";
+            $peer["role"] = "receiver";
 
-            if ($input->getString("answer")) {
-                $userFile["answer"] = json_decode($input->getString("answer"));
+            //check for offer
+            if (isset($otherUser["peers"][$userId]["offer"])) {
+                $peer["offer"] = $otherUser["peers"][$userId]["offer"];
+            }
+            if (isset($otherUser["peers"][$userId]["answer"])) {
+                $peer["answer"] = $otherUser["peers"][$userId]["answer"];
             }
         }
+
+        $peers[$otherUserId] = $peer;
     }
+    $userFile["peers"] = $peers;
 
     //build room data
     $room = [
         "code" => $roomCode,
         "participants" => count($users) + 1,
         "me" => $userFile,
-        "others" => $users,
+        "others" => $peers,
     ];
 
     $userFile["lastSeen"] = new DateTime()->format("Y-m-d H:i:s");
