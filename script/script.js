@@ -25,6 +25,15 @@ async function start() {
     }
 }
 
+window.addEventListener('pagehide', () => {
+    navigator.sendBeacon(
+        '/leave',
+        JSON.stringify({
+            code: roomCode
+        })
+    );
+});
+
 function createRemoteVideo(userId) {
 
     const template = document.getElementById("remoteVideo");
@@ -35,6 +44,7 @@ function createRemoteVideo(userId) {
     video.style.display = "";
     video.autoplay = true;
     video.playsInline = true;
+    video.hidden = false;
 
     document.getElementById("remoteVideosContainer").appendChild(video);
 
@@ -49,6 +59,34 @@ function createPeer(userId) {
             }
         ]
     });
+
+    peerConnection.onconnectionstatechange = async () => {
+        console.log(
+            userId,
+            peerConnection.connectionState
+        );
+
+        if (peerConnection.connectionState === "connected") {
+
+            console.log("Connected to", userId);
+            peers[userId].connected = true;
+
+            await sendNegotiation(
+                userId,
+                "connected",
+                true
+            );
+        }
+
+
+        if (
+            peerConnection.connectionState === "disconnected" ||
+            peerConnection.connectionState === "failed" ||
+            peerConnection.connectionState === "closed"
+        ) {
+            cleanupPeer(userId);
+        }
+    };
 
     localStream.getTracks().forEach(track => {
         peerConnection.addTrack(track, localStream);
@@ -65,10 +103,25 @@ function createPeer(userId) {
         offer: null,
         offerReceived: false,
         answer: null,
-        answerReceived: false
+        answerReceived: false,
+        connected: false
     };
 
     return peers[userId];
+}
+
+function cleanupPeer(userId) {
+
+    const peer = peers[userId];
+    if (!peer) return;
+
+    peer.peerConnection.close();
+
+    document
+        .getElementById("remote-" + userId)
+        ?.remove();
+
+    delete peers[userId];
 }
 
 async function sendNegotiation(toUserId, type, data) {
@@ -113,7 +166,14 @@ async function getRoom() {
 
         const data = await response.json();
         const room = data.room;
-        const myId = data.room.me.id;
+
+        // Remove peers that no longer exist in the room
+        for (const userId of Object.keys(peers)) {
+            if (!room.others[userId]) {
+                console.log("User left:", userId);
+                cleanupPeer(userId);
+            }
+        }
 
         if (room.participants > 1) {
             for (const userId of Object.keys(room.others)) {

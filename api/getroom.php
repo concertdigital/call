@@ -95,7 +95,7 @@ function go(
         $lastSeen = new DateTime($user["lastSeen"]);
         $now = new DateTime();
 
-        if ($lastSeen < $now->modify('-5 seconds')) {
+        if ($lastSeen < $now->modify('-2 seconds')) {
             unlink($roomDir . "/{$user["id"]}.json");
         }
     }

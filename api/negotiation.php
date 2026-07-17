@@ -28,5 +28,9 @@ function go(
 
     $userFile["peers"][$toUserId][$type] = $data;
 
+    if ($type === "connected") {
+        unset($userFile["peers"][$toUserId]);
+    }
+
     file_put_contents($userFileName, json_encode($userFile, JSON_PRETTY_PRINT));
 }
