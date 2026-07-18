@@ -46,7 +46,7 @@ function createRemoteVideo(userId) {
     video.playsInline = true;
     video.hidden = false;
 
-    document.getElementById("remoteVideosContainer").appendChild(video);
+    document.getElementById("videosContainer").appendChild(video);
 
     return video;
 }
