@@ -70,6 +70,7 @@ function createPeer(userId) {
 
             console.log("Connected to", userId);
             peers[userId].connected = true;
+            playSound("join");
 
             await sendNegotiation(
                 userId,
@@ -122,6 +123,7 @@ function cleanupPeer(userId) {
         ?.remove();
 
     delete peers[userId];
+    playSound("leave");
 }
 
 async function sendNegotiation(toUserId, type, data) {
@@ -283,6 +285,8 @@ window.toggleMic = () => {
 
     const btn = document.getElementById("micBtn");
     if (btn) btn.classList.toggle("active", track.enabled);
+
+    playSound(track.enabled ? "micon" : "micoff");
 };
 
 window.copyRoomLink = () => {
@@ -344,6 +348,8 @@ async function toggleScreenShare() {
     } else {
         stopScreenShare();
     }
+
+    playSound(sharingScreen ? "screenshare" : "micoff");
 }
 
 async function stopScreenShare() {
@@ -373,6 +379,13 @@ async function stopScreenShare() {
     screenStream = null;
     sharingScreen = false;
     document.getElementById('screenBtn').classList.remove("active");
+}
+
+function playSound(name) {
+    const audio = new Audio(`/asset/sound/${name}.wav`);
+    audio.play().catch(err => {
+        console.warn("Could not play sound:", err);
+    });
 }
 
 start().then(() => {
