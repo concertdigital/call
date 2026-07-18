@@ -11,10 +11,11 @@ function go(
     Session $session,
 )
 {
-    $userId = $session->get("userId");
+    $userId = (string)$session->get("userId");
     if (!$userId) {
         $userId = new Ulid("USER");
         $session->set("userId", $userId);
+        $userId = (string)$userId;
     }
 
     $roomCode = $input->getString('code');
@@ -30,7 +31,6 @@ function go(
     $userFileName = $roomDir . "/$userId.json";
     $userFile = file_exists($userFileName) ? json_decode(file_get_contents($userFileName), true) : [];
     $userFile["id"] = (string)$userId;
-
 
     //find other user files
     $users = [];
@@ -48,32 +48,35 @@ function go(
         );
     }
 
-    //right now we're only going to support one other user, but soon we will expand this
+    $peers = [];
     foreach ($users as $otherUserId => $otherUser) {
+        $peer = [];
+
         if ($otherUserId > $userId) {
             //we are offerer
-            $userFile["role"] = "offerer";
-
-            if ($input->getString("offer")) {
-                $userFile["offer"] = json_decode($input->getString("offer"));
-            }
-
+            $peer["role"] = "offerer";
         } else {
             //we are receiver
-            $userFile["role"] = "receiver";
-
-            if ($input->getString("answer")) {
-                $userFile["answer"] = json_decode($input->getString("answer"));
-            }
+            $peer["role"] = "receiver";
         }
+
+        if (isset($otherUser["peers"][$userId]["offer"])) {
+            $peer["offer"] = $otherUser["peers"][$userId]["offer"];
+        }
+        if (isset($otherUser["peers"][$userId]["answer"])) {
+            $peer["answer"] = $otherUser["peers"][$userId]["answer"];
+        }
+
+        $peers[$otherUserId] = $peer;
     }
+    $userFile["peers"] = $peers;
 
     //build room data
     $room = [
         "code" => $roomCode,
         "participants" => count($users) + 1,
         "me" => $userFile,
-        "others" => $users,
+        "others" => $peers,
     ];
 
     $userFile["lastSeen"] = new DateTime()->format("Y-m-d H:i:s");
@@ -84,7 +87,7 @@ function go(
         $lastSeen = new DateTime($user["lastSeen"]);
         $now = new DateTime();
 
-        if ($lastSeen < $now->modify('-5 seconds')) {
+        if ($lastSeen < $now->modify('-2 seconds')) {
             unlink($roomDir . "/{$user["id"]}.json");
         }
     }

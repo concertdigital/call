@@ -32,7 +32,7 @@ html, body {
 }
 
 /* Remote container */
-#remoteVideosContainer {
+#videosContainer {
 	position: absolute;
 	inset: 0;
 	display: grid;
@@ -42,7 +42,7 @@ html, body {
 }
 
 /* Default video styling */
-#remoteVideosContainer video {
+#videosContainer video {
 	position: relative;
 	width: 100%;
 	height: 100%;
@@ -50,14 +50,31 @@ html, body {
 	background: black;
 }
 
-/* Single video layout */
-#remoteVideosContainer.singleVideo {
-	display: flex;
+/* One remote participant */
+#remoteVideosContainer:has(video):not(:has(video:nth-child(3))) {
+  display: flex;
 }
 
-#remoteVideosContainer.singleVideo video {
-	width: 100%;
-	height: 100%;
+#remoteVideosContainer:has(video):not(:has(video:nth-child(3))) video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Two or more remote participants */
+#remoteVideosContainer:has(video):has(video:nth-child(3)) {
+  display: grid;
+  justify-content: center;
+  align-content: center;
+  gap: 12px;
+
+  grid-template-columns: repeat(auto-fit, minmax(320px, 400px));
+}
+
+#remoteVideosContainer:has(video):has(video:nth-child(3)) video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
 }
 
 /* Screen share mode */
