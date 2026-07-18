@@ -20,7 +20,15 @@ html, body {
 
 	z-index: 50;
 	pointer-events: none;
-	opacity: 0.8;
+	
+	mix-blend-mode: difference;
+	filter: brightness(6.5) hue-rotate(0turn);
+	animation: hueylewis 600s infinite both;
+	@keyframes hueylewis {
+		to {
+			filter: brightness(6.5) hue-rotate(1turn);
+		}
+	}
 }
 
 /* Remote container */
