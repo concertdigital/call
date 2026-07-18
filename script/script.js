@@ -156,6 +156,7 @@ async function getRoom() {
 
     try {
         const response = await fetch('/getroom/?code=' + roomCode, {
+            credentials: 'include',
             method: 'GET',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'

@@ -15,6 +15,7 @@ function go(
     if (!$userId) {
         $userId = new Ulid("USER");
         $session->set("userId", $userId);
+        $userId = (string)$userId;
     }
 
     $roomCode = $input->getString('code');
@@ -54,25 +55,16 @@ function go(
         if ($otherUserId > $userId) {
             //we are offerer
             $peer["role"] = "offerer";
-
-            //check for answer
-            if (isset($otherUser["peers"][$userId]["answer"])) {
-                $peer["answer"] = $otherUser["peers"][$userId]["answer"];
-            }
-            if (isset($otherUser["peers"][$userId]["offer"])) {
-                $peer["offer"] = $otherUser["peers"][$userId]["offer"];
-            }
         } else {
             //we are receiver
             $peer["role"] = "receiver";
+        }
 
-            //check for offer
-            if (isset($otherUser["peers"][$userId]["offer"])) {
-                $peer["offer"] = $otherUser["peers"][$userId]["offer"];
-            }
-            if (isset($otherUser["peers"][$userId]["answer"])) {
-                $peer["answer"] = $otherUser["peers"][$userId]["answer"];
-            }
+        if (isset($otherUser["peers"][$userId]["offer"])) {
+            $peer["offer"] = $otherUser["peers"][$userId]["offer"];
+        }
+        if (isset($otherUser["peers"][$userId]["answer"])) {
+            $peer["answer"] = $otherUser["peers"][$userId]["answer"];
         }
 
         $peers[$otherUserId] = $peer;
